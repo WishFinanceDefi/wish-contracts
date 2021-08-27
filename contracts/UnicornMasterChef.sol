@@ -263,14 +263,13 @@ library Address {
 }
 
 
-// File: contracts/MasterChef.sol
 
-import  "./WishFinance.sol";
+import  "./UnicornToken.sol";
 
 
 pragma solidity ^0.6.12;
 
-contract WishMasterChef is Ownable {
+contract UnicornMasterChef is Ownable {
     using SafeMath for uint256;
     using SafeBEP20 for IBEP20;
 
@@ -284,26 +283,25 @@ contract WishMasterChef is Ownable {
     // Info of each pool.
     struct PoolInfo {
         IBEP20 lpToken; // Address of LP token contract.
-        uint256 allocPoint; // How many allocation points assigned to this pool. WISHs to distribute per block.
-        uint256 lastRewardBlock; // Last block number that WISHs distribution occurs.
-        uint256 accWISHPerShare; // Accumulated WISHs per share, times 1e12. See below.
+        uint256 allocPoint; // How many allocation points assigned to this pool. uniqs to distribute per block.
+        uint256 lastRewardBlock; // Last block number that UNIQs distribution occurs.
+        uint256 accUNIQPerShare; // Accumulated UNIQs per share, times 1e12. See below.
         uint16 depositFeeBP; // Deposit fee in basis points
     }
 
-    // The WISH TOKEN!
-    WishFinance public wish;
+    // The UNIQ TOKEN!
+    UnicornToken public uniq;
 
-    address public charityAddress;
 
     // Dev address.
     address public devaddr;
-    // WISH tokens created per block.
-    uint256 public wishPerBlock;
-    // Bonus muliplier for early wish makers.
+    // UNIQ tokens created per block.
+    uint256 public uniqPerBlock;
+    // Bonus muliplier for early uniq makers.
     uint256 public constant BONUS_MULTIPLIER = 1;
     // Deposit Fee address
     address public feeAddress;
-    uint256 private MAX_FEE = 500; //5%
+    uint256 private MAX_FEE = 400; //4%
 
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -311,7 +309,7 @@ contract WishMasterChef is Ownable {
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation points. Must be the sum of all allocation points in all pools.
     uint256 public totalAllocPoint = 0;
-    // The block number when WISH mining starts.
+    // The block number when UNIQ mining starts.
     uint256 public startBlock;
 
     event Deposit(address indexed user, uint256 indexed pid, uint256 amount);
@@ -319,19 +317,17 @@ contract WishMasterChef is Ownable {
     event EmergencyWithdraw(address indexed user, uint256 indexed pid, uint256 amount);
 
     constructor(
-        WishFinance _wish,
+        UnicornToken _uniq,
         address _devaddr,
         address _feeAddress,
-        address _charityAddress,
-        uint256 _wishPerBlock,
+        uint256 _uniqPerBlock,
         uint256 _startBlock
     ) public {
-        wish = _wish;
+        uniq = _uniq;
         devaddr = _devaddr;
         feeAddress = _feeAddress;
-        wishPerBlock = _wishPerBlock;
+        uniqPerBlock = _uniqPerBlock;
         startBlock = _startBlock;
-        charityAddress = _charityAddress;
     }
 
     function poolLength() external view returns (uint256) {
@@ -356,13 +352,13 @@ contract WishMasterChef is Ownable {
                 lpToken: _lpToken,
                 allocPoint: _allocPoint,
                 lastRewardBlock: lastRewardBlock,
-                accWISHPerShare: 0,
+                accUNIQPerShare: 0,
                 depositFeeBP: _depositFeeBP
             })
         );
     }
 
-    // Update the given pool's WISH allocation point and deposit fee. Can only be called by the owner.
+    // Update the given pool's UNIQ allocation point and deposit fee. Can only be called by the owner.
     function set(
         uint256 _pid,
         uint256 _allocPoint,
@@ -383,18 +379,18 @@ contract WishMasterChef is Ownable {
         return _to.sub(_from).mul(BONUS_MULTIPLIER);
     }
 
-    // View function to see pending WISHs on frontend.
-    function pendingWISH(uint256 _pid, address _user) external view returns (uint256) {
+    // View function to see pending UNIQs on frontend.
+    function pendingUNIQ(uint256 _pid, address _user) external view returns (uint256) {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 accWISHPerShare = pool.accWISHPerShare;
+        uint256 accUNIQPerShare = pool.accUNIQPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 wishReward = multiplier.mul(wishPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-            accWISHPerShare = accWISHPerShare.add(wishReward.mul(1e12).div(lpSupply));
+            uint256 uniqReward = multiplier.mul(uniqPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+            accUNIQPerShare = accUNIQPerShare.add(uniqReward.mul(1e12).div(lpSupply));
         }
-        return user.amount.mul(accWISHPerShare).div(1e12).sub(user.rewardDebt);
+        return user.amount.mul(accUNIQPerShare).div(1e12).sub(user.rewardDebt);
     }
 
     // Update reward variables for all pools. Be careful of gas spending!
@@ -417,24 +413,22 @@ contract WishMasterChef is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 wishReward = multiplier.mul(wishPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
-        wish.mint(devaddr, wishReward.div(10));
-        wish.mint(charityAddress, wishReward.div(10));
-
-        wish.mint(address(this), wishReward);
-        pool.accWISHPerShare = pool.accWISHPerShare.add(wishReward.mul(1e12).div(lpSupply));
+        uint256 uniqReward = multiplier.mul(uniqPerBlock).mul(pool.allocPoint).div(totalAllocPoint);
+        uniq.mint(devaddr, uniqReward.div(10));
+        uniq.mint(address(this), uniqReward);
+        pool.accUNIQPerShare = pool.accUNIQPerShare.add(uniqReward.mul(1e12).div(lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
-    // Deposit LP tokens to MasterChef for WISH allocation.
+    // Deposit LP tokens to MasterChef for UNIQ allocation.
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(pool.accWISHPerShare).div(1e12).sub(user.rewardDebt);
+            uint256 pending = user.amount.mul(pool.accUNIQPerShare).div(1e12).sub(user.rewardDebt);
             if (pending > 0) {
-                safeWISHTransfer(msg.sender, pending);
+                safeUNIQTransfer(msg.sender, pending);
             }
         }
         if (_amount > 0) {
@@ -451,7 +445,7 @@ contract WishMasterChef is Ownable {
                 user.amount = user.amount.add(_amount);
             }
         }
-        user.rewardDebt = user.amount.mul(pool.accWISHPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accUNIQPerShare).div(1e12);
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -461,15 +455,15 @@ contract WishMasterChef is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, 'withdraw: not good');
         updatePool(_pid);
-        uint256 pending = user.amount.mul(pool.accWISHPerShare).div(1e12).sub(user.rewardDebt);
+        uint256 pending = user.amount.mul(pool.accUNIQPerShare).div(1e12).sub(user.rewardDebt);
         if (pending > 0) {
-            safeWISHTransfer(msg.sender, pending);
+            safeUNIQTransfer(msg.sender, pending);
         }
         if (_amount > 0) {
             user.amount = user.amount.sub(_amount);
             pool.lpToken.safeTransfer(address(msg.sender), _amount);
         }
-        user.rewardDebt = user.amount.mul(pool.accWISHPerShare).div(1e12);
+        user.rewardDebt = user.amount.mul(pool.accUNIQPerShare).div(1e12);
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -485,13 +479,13 @@ contract WishMasterChef is Ownable {
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
-    // Safe wish transfer function, just in case if rounding error causes pool to not have enough WISHs.
-    function safeWISHTransfer(address _to, uint256 _amount) internal {
-        uint256 wishBal = wish.balanceOf(address(this));
-        if (_amount > wishBal) {
-            wish.mint(_to, wishBal);
+    // Safe uniq transfer function, just in case if rounding error causes pool to not have enough UNIQs.
+    function safeUNIQTransfer(address _to, uint256 _amount) internal {
+        uint256 uniqBal = uniq.balanceOf(address(this));
+        if (_amount > uniqBal) {
+            uniq.transfer(_to, uniqBal);
         } else {
-            wish.transfer(_to, _amount);
+            uniq.transfer(_to, _amount);
         }
     }
 
@@ -501,13 +495,7 @@ contract WishMasterChef is Ownable {
         devaddr = _devaddr;
     }
 
-    // Update dev address by the previous dev.
-    function changeCharityAddress(address _charityAddress  ) public {
-        require(msg.sender == devaddr, 'dev: wut?');
-        charityAddress = _charityAddress;
-    }
-
-
+  
     
 
     function setFeeAddress(address _feeAddress) public {
@@ -516,8 +504,8 @@ contract WishMasterChef is Ownable {
     }
 
     //Pancake has to add hidden dummy pools inorder to alter the emission, here we make it simple and transparent to all.
-    function updateEmissionRate(uint256 _wishPerBlock) public onlyOwner {
+    function updateEmissionRate(uint256 _uniqPerBlock) public onlyOwner {
         massUpdatePools();
-        wishPerBlock = _wishPerBlock;
+        uniqPerBlock = _uniqPerBlock;
     }
 }

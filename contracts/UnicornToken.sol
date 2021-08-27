@@ -568,7 +568,7 @@ pragma solidity ^0.6.12;
 
 
 
-contract WishFinance is Context, IBEP20, Ownable {
+contract UnicornToken is Context, IBEP20, Ownable {
     using SafeMath for uint256;
     
     mapping(address => uint256) private _balances;
@@ -582,10 +582,10 @@ contract WishFinance is Context, IBEP20, Ownable {
     string private _symbol;
     uint8 private _decimals;
     
-    uint256 public projectTax = 5; //0.5%
-    uint256 public lpTax = 5; //0.5%
+    uint256 public projectTax = 40; //4%
+    uint256 public lpTax = 10; //1%
 
-    uint256 public numTokensSellToAddToLiquidity = 10000*1e18;
+    uint256 public numTokensSellToAddToLiquidity = 5000*1e18;
     address public operator;
     bool public swapAndLiquifiyEnable = true;
 
@@ -593,7 +593,7 @@ contract WishFinance is Context, IBEP20, Ownable {
     
     address public projectWallet;
     
-    uint256 public MAX_SUPPLY = 30000000*1e18;
+    uint256 public MAX_SUPPLY = 500000*1e18;
     
     
     
@@ -621,8 +621,8 @@ contract WishFinance is Context, IBEP20, Ownable {
 
 
     constructor(address _projectWallet) public {
-        _name = "WishFinance";
-        _symbol = "WISH";
+        _name = "Unicorn";
+        _symbol = "UNIQ";
         _decimals = 18;
         projectWallet = _projectWallet;
     
